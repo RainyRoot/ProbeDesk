@@ -16,6 +16,7 @@ var (
 	netuseFlag   bool
 	biosFlag     bool
 	productsFlag bool
+	getUsersFlag bool
 )
 
 // winCmd represents "win get"
@@ -25,7 +26,7 @@ var winCmd = &cobra.Command{
 including system details, network configuration, BIOS info, and installed products.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// If no flags are set, get all info
-		if !systemFlag && !ipconfigFlag && !netuseFlag && !biosFlag && !productsFlag {
+		if !systemFlag && !ipconfigFlag && !netuseFlag && !biosFlag && !productsFlag && !getUsersFlag {
 			getAllWindowsInfo()
 			return
 		}
@@ -48,15 +49,27 @@ including system details, network configuration, BIOS info, and installed produc
 	},
 }
 
+//Ideas
+/*
+vpn? vlan netz name
+pingen?
+lizenz keys?
+how old user pw? last change
+how many user profiles + name
+welche dienste laufen?
+welche geräte sind angeschlossen
+*/
+
 func init() {
 	rootCmd.AddCommand(winCmd)
 
 	// Flags
 	winCmd.Flags().BoolVar(&systemFlag, "system", false, "Get system info")
-	winCmd.Flags().BoolVar(&ipconfigFlag, "ipconfig", false, "Get IP configuration info")
-	winCmd.Flags().BoolVar(&netuseFlag, "netuse", false, "Get network use info")
+	winCmd.Flags().BoolVar(&ipconfigFlag, "ipconfig", false, "Get IP configuration info") //TODO filter for specific fields
+	winCmd.Flags().BoolVar(&netuseFlag, "netuse", false, "Get network use info")          //TODO testing
 	winCmd.Flags().BoolVar(&biosFlag, "bios", false, "Get BIOS info")
-	winCmd.Flags().BoolVar(&productsFlag, "products", false, "Get installed products info")
+	winCmd.Flags().BoolVar(&productsFlag, "products", false, "Get installed products info") //TODO filter for specific fields
+	winCmd.Flags().BoolVar(&getUsersFlag, "users", false, "Get user accounts info")
 }
 
 // Collect all Windows information
@@ -67,12 +80,33 @@ func getAllWindowsInfo() {
 	getNetInfo()
 	getBiosInfo()
 	getProductsInfo()
+	getUsers()
 }
 
 // Different functions to get specific information
 func getSystemInfo() {
 	fmt.Println("=== System Info ===")
-	runCommand(`systeminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"Total Physical Memory"`)
+
+	out, err := exec.Command("systeminfo").Output()
+	if err != nil {
+		fmt.Printf("Error running systeminfo: %v\n", err)
+		return
+	}
+
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "OS Name") ||
+			strings.HasPrefix(line, "OS Version") ||
+			strings.HasPrefix(line, "Total Physical Memory") {
+			fmt.Println(line)
+		}
+	}
+}
+
+func getIpConfigInfo() {
+	fmt.Println("=== IP Configuration Info ===")
+	runCommand("ipconfig /all")
 }
 
 func getNetInfo() {
@@ -90,9 +124,9 @@ func getProductsInfo() {
 	runCommand("wmic product get name,version")
 }
 
-func getIpConfigInfo() {
-	fmt.Println("=== IP Configuration Info ===")
-	runCommand("ipconfig /all")
+func getUsers() {
+	fmt.Println("=== User Accounts Info ===")
+	runCommand("wmic useraccount get name")
 }
 
 // Executes a command and prints its output
