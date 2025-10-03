@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/RainyRoot/quicksec/cmd"
+import "github.com/RainyRoot/ProbeDesk/cmd"
 
 func main() {
 	cmd.Execute()

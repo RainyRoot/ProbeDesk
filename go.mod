@@ -1,4 +1,4 @@
-module github.com/RainyRoot/quicksec
+module github.com/RainyRoot/ProbeDesk
 
 go 1.25.1
 

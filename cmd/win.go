@@ -1,3 +1,5 @@
+// Copyright (c) 2025 RainyRoot
+// MIT License
 package cmd
 
 import (
@@ -18,24 +20,30 @@ var (
 
 // winCmd represents "win get"
 var winCmd = &cobra.Command{
-	Use:   "win",
-	Short: "Windows system info commands",
-	Long:  `Collect various Windows system information for support purposes.`,
+	Use: "win",
+	Long: `ProbeDesk can collect various information about a Windows system,
+including system details, network configuration, BIOS info, and installed products.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// If no flags are set, get all info
 		if !systemFlag && !ipconfigFlag && !netuseFlag && !biosFlag && !productsFlag {
 			getAllWindowsInfo()
-		} else if systemFlag {
+			return
+		}
+
+		if systemFlag {
 			getSystemInfo()
-		} else if ipconfigFlag {
+		}
+		if ipconfigFlag {
+			getIpConfigInfo()
+		}
+		if netuseFlag {
 			getNetInfo()
-		} else if netuseFlag {
-			getNetInfo()
-		} else if biosFlag {
+		}
+		if biosFlag {
 			getBiosInfo()
-		} else if productsFlag {
+		}
+		if productsFlag {
 			getProductsInfo()
-		} else {
-			fmt.Println("Unknown subcommand. Use '--help' for available options.")
 		}
 	},
 }
@@ -51,13 +59,14 @@ func init() {
 	winCmd.Flags().BoolVar(&productsFlag, "products", false, "Get installed products info")
 }
 
+// Collect all Windows information
 func getAllWindowsInfo() {
 	fmt.Println("=== Windows System Info ===")
-	runCommand(`systeminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"BIOS Version" /C:"Total Physical Memory" /C:"Available Physical Memory" /C:"Domain" /C:"Logon Server"`) // Win-Version, Hersteller, RAM, etc.
-	runCommand("ipconfig /all")                                                                                                                                                  // IPv4 / IPv6
-	runCommand("net use")                                                                                                                                                        // Netzlaufwerke
-	runCommand("wmic bios get serialnumber,manufacturer,version")                                                                                                                // BIOS
-	runCommand("wmic product get name,version")                                                                                                                                  // Installed programs
+	getSystemInfo()
+	getIpConfigInfo()
+	getNetInfo()
+	getBiosInfo()
+	getProductsInfo()
 }
 
 // Different functions to get specific information
@@ -68,7 +77,6 @@ func getSystemInfo() {
 
 func getNetInfo() {
 	fmt.Println("=== Network Info ===")
-	runCommand("ipconfig /all")
 	runCommand("net use")
 }
 
@@ -82,7 +90,12 @@ func getProductsInfo() {
 	runCommand("wmic product get name,version")
 }
 
-// Default run command function
+func getIpConfigInfo() {
+	fmt.Println("=== IP Configuration Info ===")
+	runCommand("ipconfig /all")
+}
+
+// Executes a command and prints its output
 func runCommand(command string) {
 	fmt.Printf("\n> %s\n", command)
 	parts := strings.Fields(command)
