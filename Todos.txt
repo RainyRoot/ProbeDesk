@@ -1,0 +1,18 @@
+Flags (help infos etc)
+
+//Ideas
+/*
+lizenz keys?
+zeig alles was USB steckt
+*/
+
+=== BONUS ===
+Export als HTML/Markdown
+
+Button für „Copy to clipboard“
+
+Optional: Remote-Modus (Infos über IP vom anderen Rechner holen, falls erlaubt)
+
+Zeitstempel + Systemname im Report
+
+Erkennung typischer Probleme (z. B. „Kein DHCP“, „User Passwort älter als X Tage“ → Warnung)

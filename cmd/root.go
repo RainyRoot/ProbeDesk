@@ -37,7 +37,6 @@ func configureHelpAndUsage() {
 		fmt.Println("----------------------")
 		fmt.Println("ProbeDesk collects system & network information to help with support or auditing.")
 		fmt.Println("Usage examples:")
-		fmt.Println("  probedesk win     # run Windows-specific probes")
 		fmt.Println("  probedesk win     # --system --ipconfig   # run specific probes")
 		fmt.Println()
 		fmt.Println("Available commands:")

@@ -21,6 +21,8 @@ var (
 	getVpnConnectionsFlag bool
 	getServicesFlag       bool
 	getPasswordInfoFlag   bool
+	pingRequest           bool
+	getUsbInfoFlag        bool
 )
 
 // winCmd represents "win get"
@@ -31,7 +33,7 @@ including system details, network configuration, BIOS info, and installed produc
 	Short: "Collect Windows system and network information",
 	Run: func(cmd *cobra.Command, args []string) {
 		// If no flags are set, get all info
-		if !systemFlag && !ipconfigFlag && !netuseFlag && !biosFlag && !productsFlag && !getUsersFlag && !getVpnConnectionsFlag && !getServicesFlag && !getPasswordInfoFlag {
+		if !systemFlag && !ipconfigFlag && !netuseFlag && !biosFlag && !productsFlag && !getUsersFlag && !getVpnConnectionsFlag && !getServicesFlag && !getPasswordInfoFlag && !pingRequest && !getUsbInfoFlag {
 			getAllWindowsInfo()
 			return
 		}
@@ -63,6 +65,16 @@ including system details, network configuration, BIOS info, and installed produc
 		if getPasswordInfoFlag {
 			getPasswordInfo()
 		}
+		if pingRequest {
+			if len(args) < 1 {
+				fmt.Println("Please specify a host or IP to ping, e.g.: probedesk win --ping 8.8.8.8")
+				return
+			}
+			pingHost(args[0])
+		}
+		if getUsbInfoFlag {
+			getUsbInfo()
+		}
 	},
 }
 
@@ -79,8 +91,10 @@ func init() {
 	winCmd.Flags().BoolVar(&getVpnConnectionsFlag, "vpn", false, "Get VPN connections info") //TODO testing
 	winCmd.Flags().BoolVar(&getServicesFlag, "services", false, "Get running services info")
 	winCmd.Flags().BoolVar(&getPasswordInfoFlag, "passwords", false, "Get user password info") //TODO fixing
+	winCmd.Flags().BoolVar(&pingRequest, "ping", false, "Ping a host (add host as argument)")
+	winCmd.Flags().BoolVar(&getUsbInfoFlag, "usb", false, "Get connected USB devices info")
 
-	// Custom HelpFunc für Flags als Module
+	// Custom HelpFunc for Flags as Modules
 	winCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		fmt.Println()
 		fmt.Println("ProbeDesk — List of available flags/modules for 'win' command")
@@ -106,6 +120,9 @@ func getAllWindowsInfo() {
 	getVpnConnections()
 	getServices()
 	getPasswordInfo()
+	pingHost("srv-fls-001.ad.adler-group.com")
+	pingHost("8.8.8.8")
+	getUsbInfo()
 }
 
 // Different functions to get specific information
@@ -122,8 +139,7 @@ func getSystemInfo() {
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "OS Name") ||
-			strings.HasPrefix(line, "OS Version") ||
-			strings.HasPrefix(line, "Total Physical Memory") {
+			strings.HasPrefix(line, "OS Version") {
 			fmt.Println(line)
 		}
 	}
@@ -164,11 +180,23 @@ func getServices() {
 	runPowershell("Get-Service | Where-Object {$_.Status -eq 'Running'} | Select-Object DisplayName,Name,StartType")
 }
 
+// filter out default user, Guest, admin
 func getPasswordInfo() {
 	fmt.Println("\n=== User Password Info ===")
 	runPowershell("Get-LocalUser | Select-Object Name,Enabled,PasswordExpires,PasswordLastSet,LastLogon")
 }
 
+func pingHost(target string) {
+	fmt.Printf("\n=== Pinging Host: %s ===\n", target)
+	runPowershell(fmt.Sprintf("ping -n 4 %s", target))
+}
+
+func getUsbInfo() {
+	fmt.Println("\n=== USB Devices Info ===")
+	runPowershell("Get-WmiObject Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'USB' -or $_.Name -match 'USB' } | Select-Object Name, Manufacturer")
+}
+
+// keep for later
 // Executes a command and prints its output
 func runCommand(command string) {
 	fmt.Printf("\n> %s\n", command)
@@ -182,7 +210,7 @@ func runCommand(command string) {
 	fmt.Println(string(out))
 }
 
-// Proposed function to run powershell commands
+// function to run powershell commands
 func runPowershell(command string) {
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", command)
 	out, err := cmd.CombinedOutput()
