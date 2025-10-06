@@ -1,18 +1,13 @@
-Flags (help infos etc)
 
 //Ideas
-/*
 lizenz keys?
-zeig alles was USB steckt
-*/
+
+Auf dem Zielsystem muss PowerShell Remoting aktiviert sein (Enable-PSRemoting -Force).  <--- testen
+
+Du brauchst gültige Anmeldeinformationen (z. B. in einer Domäne oder per Enter-PSSession -Credential).
+
+Falls du Credentials einbauen willst, kannst du das erweitern mit -Credential (Get-Credential).
 
 === BONUS ===
-Export als HTML/Markdown
-
-Button für „Copy to clipboard“
-
-Optional: Remote-Modus (Infos über IP vom anderen Rechner holen, falls erlaubt)
-
-Zeitstempel + Systemname im Report
 
 Erkennung typischer Probleme (z. B. „Kein DHCP“, „User Passwort älter als X Tage“ → Warnung)
