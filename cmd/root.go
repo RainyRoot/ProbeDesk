@@ -30,7 +30,6 @@ func Execute() {
 }
 
 func configureHelpAndUsage() {
-	// prints a default blurb + commands list
 	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		fmt.Println()
 		fmt.Println("ProbeDesk — quick help")
@@ -42,7 +41,6 @@ func configureHelpAndUsage() {
 		fmt.Println("Available commands:")
 		printCommandsSummary(cmd)
 		fmt.Println()
-		// Print flags for the current command (if any)
 		cmd.Flags().PrintDefaults()
 	})
 
@@ -57,7 +55,6 @@ func configureHelpAndUsage() {
 		return nil
 	})
 
-	// When an unknown flag or invalid flag usage occurs
 	rootCmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
 		fmt.Printf("Error: %s\n\n", err.Error())
 		_ = cmd.Help()
@@ -74,7 +71,6 @@ func configureHelpAndUsage() {
 }
 
 func printCommandsSummary(cmd *cobra.Command) {
-	// We want top-level commands from root; if cmd is root, use its children.
 	commands := cmd.Commands()
 	if cmd.HasParent() {
 		commands = cmd.Commands()
@@ -85,10 +81,9 @@ func printCommandsSummary(cmd *cobra.Command) {
 		return
 	}
 
-	// Determine padding for nice alignment
+	// Determine padding
 	maxNameLen := 0
 	for _, c := range commands {
-		// skip hidden commands
 		if c.Hidden {
 			continue
 		}
