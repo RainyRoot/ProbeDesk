@@ -20,13 +20,11 @@ var (
 	systemFlag            bool
 	ipconfigFlag          bool
 	netuseFlag            bool
-	biosFlag              bool
 	productsFlag          bool
-	getUsersFlag          bool
 	getVpnConnectionsFlag bool
 	getServicesFlag       bool
-	getPasswordInfoFlag   bool
-	pingRequest           bool
+	getUserInfoFlag       bool
+	traceRouteRequest     bool
 	getUsbInfoFlag        bool
 	remoteTarget          string
 	reportFormat          string
@@ -44,13 +42,16 @@ var winActions = []WinAction{
 	{&systemFlag, "system", getSystemInfo},
 	{&ipconfigFlag, "ipconfig", getIpConfigInfo},
 	{&netuseFlag, "netuse", getNetInfo},
-	{&biosFlag, "bios", getBiosInfo},
 	{&productsFlag, "products", getProductsInfo},
-	{&getUsersFlag, "users", getUsers},
 	{&getVpnConnectionsFlag, "vpn", getVpnConnections},
 	{&getServicesFlag, "services", getServices},
-	{&getPasswordInfoFlag, "passwords", getPasswordInfo},
+	{&getUserInfoFlag, "users", getUsersInfo},
 	{&getUsbInfoFlag, "usb", getUsbInfo},
+
+	//---additional flags defined in init():---
+	// traceRoute
+	// remoteTarget
+	// reportFormat
 }
 
 // Command definition
@@ -69,17 +70,27 @@ including system details, network configuration, BIOS info, and installed produc
 
 		for _, a := range winActions {
 			if *a.flag {
-				out, _ := a.run()
-				report.WriteString(fmt.Sprintf("# %s\n%s\n", a.name, out))
+				fmt.Printf("\n=== %s ===\n", strings.Title(a.name))
+
+				out, err := a.run()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error running %s: %v\n", a.name, err)
+				}
+
+				fmt.Println(out)
+				report.WriteString(fmt.Sprintf("=== %s ===\n%s\n\n", strings.Title(a.name), out))
 			}
 		}
 
-		if pingRequest {
+		if traceRouteRequest {
 			if len(args) < 1 {
-				fmt.Println("Please specify a host or IP to ping, e.g.: probedesk win --ping 8.8.8.8")
+				fmt.Println("Please specify a host or IP to trace, e.g.: probedesk win --trace 8.8.8.8")
 			} else {
-				out, _ := pingHost(args[0])
-				report.WriteString(fmt.Sprintf("# Ping %s\n%s\n", args[0], out))
+				host := args[0]
+				fmt.Printf("\n=== TraceRoute (%s) ===\n", host)
+				out, _ := traceRoute(host)
+				fmt.Println(out)
+				report.WriteString(fmt.Sprintf("=== TraceRoute (%s) ===\n%s\n\n", host, out))
 			}
 		}
 
@@ -98,7 +109,6 @@ including system details, network configuration, BIOS info, and installed produc
 	},
 }
 
-// Initialization
 func init() {
 	rootCmd.AddCommand(winCmd)
 
@@ -106,7 +116,8 @@ func init() {
 		winCmd.Flags().BoolVar(a.flag, a.name, false, fmt.Sprintf("Get %s info", a.name))
 	}
 
-	winCmd.Flags().BoolVar(&pingRequest, "ping", false, "Ping a host (add host as argument)")
+	// Additional flags
+	winCmd.Flags().BoolVar(&traceRouteRequest, "trace", false, "Trace a host (add host as argument)")
 	winCmd.Flags().StringVar(&remoteTarget, "remote", "", "Run commands remotely on target host (requires PS Remoting)")
 	winCmd.Flags().StringVar(&reportFormat, "report", "", "Export collected data to report (html or md)")
 
@@ -129,7 +140,7 @@ func anyFlagsSet() bool {
 			return true
 		}
 	}
-	return pingRequest
+	return traceRouteRequest
 }
 
 // ========================
@@ -148,12 +159,13 @@ func runPowershellReturnOutput(command string) (string, error) {
 	out, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(out))
 
-	if err != nil {
-		return fmt.Sprintf("[Error executing PowerShell command: %v]\n", err), err
-	}
 	if output == "" {
+		if err != nil {
+			return fmt.Sprintf("⚠️ Fehler beim Ausführen des Befehls: %v", err), nil
+		}
 		return "No output (possibly no data found).\n", nil
 	}
+
 	return output, nil
 }
 
@@ -198,16 +210,8 @@ func getNetInfo() (string, error) {
 	return runPowershellReturnOutput("net use")
 }
 
-func getBiosInfo() (string, error) {
-	return runPowershellReturnOutput("Get-CimInstance Win32_BIOS | Select-Object SerialNumber,Manufacturer,Version")
-}
-
 func getProductsInfo() (string, error) {
 	return runPowershellReturnOutput("Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Select-Object DisplayName,DisplayVersion")
-}
-
-func getUsers() (string, error) {
-	return runPowershellReturnOutput("Get-LocalUser | Select-Object Name")
 }
 
 func getVpnConnections() (string, error) {
@@ -218,7 +222,7 @@ func getServices() (string, error) {
 	return runPowershellReturnOutput("Get-Service | Where-Object {$_.Status -eq 'Running'} | Select-Object DisplayName,Name,StartType")
 }
 
-func getPasswordInfo() (string, error) {
+func getUsersInfo() (string, error) {
 	return runPowershellReturnOutput("Get-LocalUser | Select-Object Name,Enabled,PasswordExpires,PasswordLastSet,LastLogon")
 }
 
@@ -251,8 +255,14 @@ func getUsbInfo() (string, error) {
 	return runPowershellReturnOutput(psCmd)
 }
 
-func pingHost(target string) (string, error) {
-	return runPowershellReturnOutput(fmt.Sprintf("ping -n 4 %s", target))
+func traceRoute(target string) (string, error) {
+	cmd := fmt.Sprintf("tracert -d -h 10 %s", target)
+
+	out, err := runPowershellReturnOutput(cmd)
+	if err != nil {
+		return fmt.Sprintf("⚠️ TraceRoute konnte %s nicht erreichen oder Fehler:\n%s", target, out), nil
+	}
+	return out, nil
 }
 
 // ========================
@@ -264,17 +274,19 @@ func getAllWindowsInfo() {
 	var report strings.Builder
 
 	for _, a := range winActions {
+		fmt.Printf("\n=== %s ===\n", strings.Title(a.name))
 		out, _ := a.run()
 		fmt.Println(out)
-		report.WriteString(fmt.Sprintf("# %s\n%s\n", a.name, out))
+		report.WriteString(fmt.Sprintf("=== %s ===\n%s\n\n", strings.Title(a.name), out))
 	}
 
 	// Fixed ping examples
 	examples := []string{"srv-fls-001.ad.adler-group.com", "8.8.8.8"}
 	for _, host := range examples {
-		out, _ := pingHost(host)
+		fmt.Printf("\n=== TraceRoute (%s) ===\n", host)
+		out, _ := traceRoute(host)
 		fmt.Println(out)
-		report.WriteString(fmt.Sprintf("# Ping %s\n%s\n", host, out))
+		report.WriteString(fmt.Sprintf("=== TraceRoute (%s) ===\n%s\n\n", host, out))
 	}
 
 	finalReport := report.String()
