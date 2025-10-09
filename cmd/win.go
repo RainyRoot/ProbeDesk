@@ -7,6 +7,8 @@ import (
 	"html"
 	"os"
 	"os/exec"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,6 +28,7 @@ var (
 	getUserInfoFlag       bool
 	traceRouteRequest     bool
 	getUsbInfoFlag        bool
+	autocompleteFlag      bool
 	remoteTarget          string
 	reportFormat          string
 )
@@ -49,9 +52,10 @@ var winActions = []WinAction{
 	{&getUsbInfoFlag, "usb", getUsbInfo},
 
 	//---additional flags defined in init():---
-	// traceRoute
-	// remoteTarget
-	// reportFormat
+	// traceRoute -> trace <ip/host>
+	// remoteTarget -> remote <host>
+	// reportFormat  -> report <html|md>
+	// autocomplete -> --win <tab>
 }
 
 // Command definition
@@ -63,11 +67,18 @@ including system details, network configuration, BIOS info, and installed produc
 	Run: func(cmd *cobra.Command, args []string) {
 		var report strings.Builder
 
+		if autocompleteFlag {
+			script := autocompleteScript()
+			fmt.Println(script)
+			return
+		}
+
 		if !anyFlagsSet() {
 			getAllWindowsInfo()
 			return
 		}
 
+		// Report Header
 		for _, a := range winActions {
 			if *a.flag {
 				fmt.Printf("\n=== %s ===\n", strings.Title(a.name))
@@ -99,7 +110,7 @@ including system details, network configuration, BIOS info, and installed produc
 		if finalReport != "" {
 			copyToClipboard(finalReport)
 			if reportFormat != "" {
-				if err := exportReport(finalReport, reportFormat); err != nil {
+				if err := exportReport(finalReport, reportFormat, ""); err != nil {
 					fmt.Println("Error exporting report:", err)
 				} else {
 					fmt.Printf("✅ Report exported successfully as %s\n", reportFormat)
@@ -120,6 +131,7 @@ func init() {
 	winCmd.Flags().BoolVar(&traceRouteRequest, "trace", false, "Trace a host (add host as argument)")
 	winCmd.Flags().StringVar(&remoteTarget, "remote", "", "Run commands remotely on target host (requires PS Remoting)")
 	winCmd.Flags().StringVar(&reportFormat, "report", "", "Export collected data to report (html or md)")
+	winCmd.Flags().BoolVar(&autocompleteFlag, "autocomplete", false, "Enable PowerShell autocomplete for this session")
 
 	winCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		fmt.Println("\nProbeDesk — List of available flags/modules for 'win' command")
@@ -148,24 +160,24 @@ func anyFlagsSet() bool {
 // ========================
 
 func runPowershellReturnOutput(command string) (string, error) {
-	var psCmd string
+	// Force Powershell UTF-8 output
+	psCmd := fmt.Sprintf("[Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8; %s", command)
 	if remoteTarget != "" {
-		psCmd = fmt.Sprintf(`Invoke-Command -ComputerName %s -ScriptBlock { %s }`, remoteTarget, command)
-	} else {
-		psCmd = command
+		psCmd = fmt.Sprintf(`Invoke-Command -ComputerName %s -ScriptBlock { [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8; %s }`, remoteTarget, command)
 	}
 
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+
+	// CombinedOutput []byte UTF-8
 	out, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(out))
 
 	if output == "" {
 		if err != nil {
-			return fmt.Sprintf("⚠️ Fehler beim Ausführen des Befehls: %v", err), nil
+			return fmt.Sprintf("⚠️ Error executing: %v", err), nil
 		}
 		return "No output (possibly no data found).\n", nil
 	}
-
 	return output, nil
 }
 
@@ -181,8 +193,19 @@ func copyToClipboard(content string) {
 	}
 }
 
-func exportReport(content, format string) error {
-	filename := fmt.Sprintf("report_%s.%s", time.Now().Format("2006-01-02_15-04-05"), format)
+func exportReport(content, format, path string) error {
+	if path == "" {
+		// Desktop of the current user
+		usr, err := user.Current()
+		if err != nil {
+			return fmt.Errorf("Couldnt determine current user: %v", err)
+		}
+		path = filepath.Join(usr.HomeDir, "Desktop")
+	}
+
+	// Create filename
+	filename := filepath.Join(path, fmt.Sprintf("report_%s.%s", time.Now().Format("2006-01-02_15-04-05"), format))
+
 	switch format {
 	case "md":
 		return os.WriteFile(filename, []byte("```markdown\n"+content+"\n```"), 0644)
@@ -192,6 +215,24 @@ func exportReport(content, format string) error {
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+// PowerShell Autocomplete Script
+func autocompleteScript() string {
+	return `
+$flags = @("system","ipconfig","netuse","products","vpn","services","users","usb","trace","remote","report")
+
+Register-ArgumentCompleter -CommandName "probedesk" -ScriptBlock {
+    param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
+
+    # Prüfen, ob der Befehl 'win' verwendet wird
+    if ($commandAst.CommandElements.Count -gt 1 -and $commandAst.CommandElements[1].Value -eq "win") {
+        $flags | Where-Object { $_ -like "$wordToComplete*" } |
+            ForEach-Object { 
+                [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) 
+            }
+    }
+}`
 }
 
 // ========================
@@ -260,7 +301,7 @@ func traceRoute(target string) (string, error) {
 
 	out, err := runPowershellReturnOutput(cmd)
 	if err != nil {
-		return fmt.Sprintf("⚠️ TraceRoute konnte %s nicht erreichen oder Fehler:\n%s", target, out), nil
+		return fmt.Sprintf("⚠️ TraceRoute could not reach %s or error:\n%s", target, out), nil
 	}
 	return out, nil
 }
@@ -273,6 +314,14 @@ func getAllWindowsInfo() {
 	fmt.Println("=== Collecting All Windows Info ===")
 	var report strings.Builder
 
+	// Report Header current User
+	usr, err := user.Current()
+	username := "Unknown"
+	if err == nil {
+		username = usr.Username
+	}
+	report.WriteString(fmt.Sprintf("Report generated by: %s\nDate: %s\n\n", username, time.Now().Format("2006-01-02 15:04:05")))
+
 	for _, a := range winActions {
 		fmt.Printf("\n=== %s ===\n", strings.Title(a.name))
 		out, _ := a.run()
@@ -280,7 +329,7 @@ func getAllWindowsInfo() {
 		report.WriteString(fmt.Sprintf("=== %s ===\n%s\n\n", strings.Title(a.name), out))
 	}
 
-	// Fixed ping examples
+	// Tracing example
 	examples := []string{"srv-fls-001.ad.adler-group.com", "8.8.8.8"}
 	for _, host := range examples {
 		fmt.Printf("\n=== TraceRoute (%s) ===\n", host)
@@ -289,7 +338,12 @@ func getAllWindowsInfo() {
 		report.WriteString(fmt.Sprintf("=== TraceRoute (%s) ===\n%s\n\n", host, out))
 	}
 
+	// Export report
 	finalReport := report.String()
 	copyToClipboard(finalReport)
-	exportReport(finalReport, "html")
+	if err := exportReport(finalReport, "html", ""); err != nil {
+		fmt.Println("Error exporting report:", err)
+	} else {
+		fmt.Printf("✅ Report exported successfully as %s\n", "html")
+	}
 }
