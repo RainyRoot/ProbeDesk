@@ -183,7 +183,7 @@ func runPowershellReturnOutput(command string) (string, error) {
 
 func copyToClipboard(content string) {
 	if content == "" {
-		fmt.Println("⚠️ Nothing to copy.")
+		fmt.Println("Nothing to copy.")
 		return
 	}
 	if err := clipboard.WriteAll(content); err != nil {
