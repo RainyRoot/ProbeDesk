@@ -1,29 +1,4 @@
-Done: tracert,
-.exe? -> binary
-users/bios rausgeworfen
-error handling
-utc 8 (ä,ü..)
-report path
-report look
 
-TODO: 
-vllt noch ein Winget update --all get einbauen damit alle windows apps direkt aktuell sind (on demand)
-autocomplete /(nearly done, missing CLI alias) 
-UI
-DNS flush button
 readme/doku/usage
+Reports md/json? testen etc
 
-
-//add features
-vllt noch ein Winget update --all get einbauen damit alle windows apps direkt aktuell sind (on demand)
-
-//Ideas
-lizenz keys?
-
-Auf dem Zielsystem muss PowerShell Remoting aktiviert sein (Enable-PSRemoting -Force).  <--- testen
-Du brauchst gültige Anmeldeinformationen (z. B. in einer Domäne oder per Enter-PSSession -Credential).
-Falls du Credentials einbauen willst, kannst du das erweitern mit -Credential (Get-Credential).
-
-=== BONUS ===
-
-Erkennung typischer Probleme (z. B. „Kein DHCP“, „User Passwort älter als X Tage“ → Warnung)

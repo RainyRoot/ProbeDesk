@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
+// Root command definition
 var rootCmd = &cobra.Command{
 	Use:   "probedesk",
 	Short: "ProbeDesk collects system and network information",
@@ -20,7 +20,6 @@ network configuration, and installed software details for support purposes.
 Use subcommands like 'win' to perform specific tasks.`,
 }
 
-// Execute adds all child commands to the root command and sets flags
 func Execute() {
 	configureHelpAndUsage()
 
@@ -60,7 +59,7 @@ func configureHelpAndUsage() {
 		_ = cmd.Help()
 		return err
 	})
-	// Override the default help command to show our custom help
+	// Override the default help command
 	rootCmd.SetHelpCommand(&cobra.Command{
 		Use:   "help [command]",
 		Short: "Show help for command",
