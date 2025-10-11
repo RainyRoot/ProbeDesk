@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // Root command definition
@@ -119,20 +120,15 @@ func configureHelpAndUsage() {
 		fmt.Println("Usage examples:")
 		fmt.Println("  probedesk         # --system --ipconfig   # run specific probes")
 		fmt.Println()
-		fmt.Println("Available commands:")
 		printCommandsSummary(cmd)
-		fmt.Println()
-		cmd.Flags().PrintDefaults()
 	})
 
-	// usage function (called when cobra prints usage)
 	rootCmd.SetUsageFunc(func(cmd *cobra.Command) error {
 		fmt.Println()
 		fmt.Printf("Usage: %s\n\n", cmd.UseLine())
 		fmt.Println("If you need help, run with `--help` or `-h`.")
 		fmt.Println()
-		fmt.Println("Commands:")
-		printCommandsSummary(cmd)
+		//printCommandsSummary(cmd)
 		return nil
 	})
 
@@ -141,6 +137,7 @@ func configureHelpAndUsage() {
 		_ = cmd.Help()
 		return err
 	})
+
 	// Override the default help command
 	rootCmd.SetHelpCommand(&cobra.Command{
 		Use:   "help [command]",
@@ -152,41 +149,12 @@ func configureHelpAndUsage() {
 }
 
 func printCommandsSummary(cmd *cobra.Command) {
-	commands := cmd.Commands()
-	if cmd.HasParent() {
-		commands = cmd.Commands()
-	}
-
-	if len(commands) == 0 {
-		fmt.Println("  (no commands available)")
-		return
-	}
-
-	// Determine padding
-	maxNameLen := 0
-	for _, c := range commands {
-		if c.Hidden {
-			continue
+	fmt.Println("Available flags:")
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		padding := ""
+		if len(f.Name) < 15 {
+			padding = strings.Repeat(" ", 15-len(f.Name))
 		}
-		if l := len(c.Name()); l > maxNameLen {
-			maxNameLen = l
-		}
-	}
-	if maxNameLen < 10 {
-		maxNameLen = 10
-	}
-
-	for _, c := range commands {
-		if c.Hidden {
-			continue
-		}
-		// repeatable formatting: "  cmdName    \t short description"
-		name := c.Name()
-		short := strings.TrimSpace(c.Short)
-		if short == "" {
-			short = "(no short description)"
-		}
-		padding := strings.Repeat(" ", maxNameLen-len(name))
-		fmt.Printf("  %s%s  %s\n", name, padding, short)
-	}
+		fmt.Printf("  --%s%s  %s\n", f.Name, padding, f.Usage)
+	})
 }

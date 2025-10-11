@@ -1,4 +1,3 @@
-// completion.go
 package cmd
 
 import (

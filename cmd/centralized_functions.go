@@ -1,5 +1,5 @@
 /// Centralized Functions
-/// power
+/// powershell execution, clipboard, report export
 
 package cmd
 
@@ -15,10 +15,6 @@ import (
 
 	"github.com/atotto/clipboard"
 )
-
-// ========================
-// Centralized Functions
-// ========================
 
 func runPowershellReturnOutput(command string) (string, error) {
 	// Force Powershell UTF-8 output
