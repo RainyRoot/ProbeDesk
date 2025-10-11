@@ -6,32 +6,21 @@ env:
   - CGO_ENABLED=0
 
 builds:
-  - main: ./main.go
+  - id: probedesk
+    main: ./main.go
     goos:
       - windows
-      - linux
-      - darwin
     goarch:
       - amd64
       - arm64
     ldflags:
       - -s -w
+    binary: probedesk.exe
 
 archives:
   - id: windows
-    builds:
-      - windows-amd64
-      - windows-arm64
+    builds: [probedesk]
     format: zip
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-
-  - id: unix
-    builds:
-      - linux-amd64
-      - linux-arm64
-      - darwin-amd64
-      - darwin-arm64
-    format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 release:
