@@ -4,6 +4,9 @@ package cmd
 
 import (
 	"fmt"
+	"os/exec"
+	"regexp"
+	"strings"
 )
 
 // Struct: Flag + Name + Action
@@ -11,11 +14,6 @@ type WinAction struct {
 	flag *bool
 	name string
 	run  func() (string, error)
-}
-
-func ping() (string, error) {
-	cmd := fmt.Sprintf("ping -n 4 8.8.8.8")
-	return runPowershellReturnOutput(cmd)
 }
 
 func getSystemInfo() (string, error) {
@@ -47,13 +45,27 @@ func getUsersInfo() (string, error) {
 }
 
 func traceRoute(target string) (string, error) {
-	cmd := fmt.Sprintf("tracert -d -h 10 %s", target)
-
-	out, err := runPowershellReturnOutput(cmd)
-	if err != nil {
-		return fmt.Sprintf("⚠️ TraceRoute could not reach %s or error:\n%s", target, out), nil
+	// Validate the target: only allow letters, numbers, dots, hyphens
+	if !isValidHost(target) {
+		return "Invalid target: only letters, digits, dots, and hyphens are allowed.", nil
 	}
-	return out, nil
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive",
+		"-Command", "tracert", "-d", "-h", "10", target)
+
+	out, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(out))
+
+	if err != nil && output == "" {
+		return fmt.Sprintf("⚠️ TraceRoute failed for %s: %v", target, err), nil
+	}
+	return output, nil
+}
+
+func isValidHost(input string) bool {
+	// regex: allows letters, digits, dots, hyphens, but not empty or spaces
+	re := regexp.MustCompile(`^[a-zA-Z0-9.\-]+$`)
+	return re.MatchString(input)
 }
 
 func flushDns() (string, error) {

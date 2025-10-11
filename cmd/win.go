@@ -56,7 +56,6 @@ func init() {
 	winCmd.Flags().BoolVar(&wingetUpdateFlag, "winget-update", false, "Update installed packages using winget (requires --yes)")
 	winCmd.Flags().BoolVar(&scanHealthFlag, "scan-health", false, "Scan system health (requires --yes)")
 	winCmd.Flags().BoolVar(&restoreHealthFlag, "restore-health", false, "Restore system health (requires --yes)")
-	winCmd.Flags().BoolVar(&pingFlag, "ping", false, "Ping a host (add host as argument)")
 
 	winCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		fmt.Println("\nProbeDesk — List of available flags/modules for 'win' command")
@@ -86,11 +85,6 @@ including system details, network configuration, BIOS info, and installed produc
 			return
 		}
 
-		if pingFlag {
-			out, _ := ping()
-			fmt.Println(out)
-			return
-		}
 		if flushDnsFlag {
 			out, _ := flushDns()
 			fmt.Println(out)
