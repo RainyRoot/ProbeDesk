@@ -31,6 +31,12 @@ var (
 	autocompleteFlag      bool
 	remoteTarget          string
 	reportFormat          string
+	confirmationFlag      bool
+	flushDnsFlag          bool
+	wingetUpdateFlag      bool
+	scanHealthFlag        bool
+	checkHealthFlag       bool
+	restoreHealthFlag     bool
 )
 
 // Struct: Flag + Name + Action
@@ -50,12 +56,21 @@ var winActions = []WinAction{
 	{&getServicesFlag, "services", getServices},
 	{&getUserInfoFlag, "users", getUsersInfo},
 	{&getUsbInfoFlag, "usb", getUsbInfo},
+	{&checkHealthFlag, "check-health", checkHealth},
 
 	//---additional flags defined in init():---
 	// traceRoute -> trace <ip/host>
 	// remoteTarget -> remote <host>
 	// reportFormat  -> report <html|md>
 	// autocomplete -> --win <tab>
+
+	//Cases requiring confirmation:
+	// confirmationFlag -> ----yes to confirm prompts like flushing DNS and winget update
+	// flushDns -> --yes
+	// wingetUpdate -> --yes
+	// restoreHealth -> --yes
+	// scanHealth -> --yes
+
 }
 
 // Command definition
@@ -70,6 +85,30 @@ including system details, network configuration, BIOS info, and installed produc
 		if autocompleteFlag {
 			script := autocompleteScript()
 			fmt.Println(script)
+			return
+		}
+
+		if flushDnsFlag {
+			out, _ := flushDns()
+			fmt.Println(out)
+			return
+		}
+
+		if wingetUpdateFlag {
+			out, _ := wingetUpdate()
+			fmt.Println(out)
+			return
+		}
+
+		if scanHealthFlag {
+			out, _ := scanHealth()
+			fmt.Println(out)
+			return
+		}
+
+		if restoreHealthFlag {
+			out, _ := restoreHealth()
+			fmt.Println(out)
 			return
 		}
 
@@ -94,6 +133,7 @@ including system details, network configuration, BIOS info, and installed produc
 		}
 
 		if traceRouteRequest {
+
 			if len(args) < 1 {
 				fmt.Println("Please specify a host or IP to trace, e.g.: probedesk win --trace 8.8.8.8")
 			} else {
@@ -132,6 +172,11 @@ func init() {
 	winCmd.Flags().StringVar(&remoteTarget, "remote", "", "Run commands remotely on target host (requires PS Remoting)")
 	winCmd.Flags().StringVar(&reportFormat, "report", "", "Export collected data to report (html or md)")
 	winCmd.Flags().BoolVar(&autocompleteFlag, "autocomplete", false, "Enable PowerShell autocomplete for this session")
+	winCmd.Flags().BoolVar(&confirmationFlag, "yes", false, "confirmation flag")
+	winCmd.Flags().BoolVar(&flushDnsFlag, "flush", false, "Flush DNS cache (requires --yes)")
+	winCmd.Flags().BoolVar(&wingetUpdateFlag, "winget-update", false, "Update installed packages using winget (requires --yes)")
+	winCmd.Flags().BoolVar(&scanHealthFlag, "scan-health", false, "Scan system health (requires --yes)")
+	winCmd.Flags().BoolVar(&restoreHealthFlag, "restore-health", false, "Restore system health (requires --yes)")
 
 	winCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		fmt.Println("\nProbeDesk — List of available flags/modules for 'win' command")
@@ -304,6 +349,40 @@ func traceRoute(target string) (string, error) {
 		return fmt.Sprintf("⚠️ TraceRoute could not reach %s or error:\n%s", target, out), nil
 	}
 	return out, nil
+}
+
+func flushDns() (string, error) {
+	if !confirmationFlag {
+		return "Flushing DNS requires --yes flag to confirm.", nil
+	}
+	cmd := "ipconfig /flushdns"
+	return runPowershellReturnOutput(cmd)
+}
+
+func wingetUpdate() (string, error) {
+	if !confirmationFlag {
+		return "Running winget upgrade requires --yes flag to confirm.", nil
+	}
+	cmd := "winget upgrade --accept-source-agreements --accept-package-agreements"
+	return runPowershellReturnOutput(cmd)
+}
+
+func scanHealth() (string, error) {
+	if !confirmationFlag {
+		return "Scanning health requires --yes flag to confirm.", nil
+	}
+	return runPowershellReturnOutput("Dism /Online /Cleanup-Image /ScanHealth")
+}
+
+func restoreHealth() (string, error) {
+	if !confirmationFlag {
+		return "Restoring health requires --yes flag to confirm.", nil
+	}
+	return runPowershellReturnOutput("Dism /Online /Cleanup-Image /RestoreHealth")
+}
+
+func checkHealth() (string, error) {
+	return runPowershellReturnOutput("Dism /Online /Cleanup-Image /CheckHealth")
 }
 
 // ========================

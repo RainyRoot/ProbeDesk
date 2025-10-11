@@ -7,9 +7,10 @@ report path
 report look
 
 TODO: 
-winget? 
-autocomplete /(nearly done, missing CLI alias)
+vllt noch ein Winget update --all get einbauen damit alle windows apps direkt aktuell sind (on demand)
+autocomplete /(nearly done, missing CLI alias) 
 UI
+DNS flush button
 readme/doku/usage
 
 
