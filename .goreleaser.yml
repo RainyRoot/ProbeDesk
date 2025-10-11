@@ -1,4 +1,3 @@
-# .goreleaser.yml for ProbeDesk (v2 schema)
 version: 2
 
 project_name: probedesk
@@ -19,9 +18,20 @@ builds:
       - -s -w
 
 archives:
-  - format: zip
+  - id: windows
+    builds:
+      - windows-amd64
+      - windows-arm64
+    format: zip
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  - format: tar.gz
+
+  - id: unix
+    builds:
+      - linux-amd64
+      - linux-arm64
+      - darwin-amd64
+      - darwin-arm64
+    format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 release:
