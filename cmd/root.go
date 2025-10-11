@@ -13,11 +13,93 @@ import (
 // Root command definition
 var rootCmd = &cobra.Command{
 	Use:   "probedesk",
-	Short: "ProbeDesk collects system and network information",
-	Long: `ProbeDesk is a tool to collect various Windows system information,
-network configuration, and installed software details for support purposes.
+	Short: "Collect Windows system and network information",
+	Long: `ProbeDesk collects Windows system info, network configuration, 
+	and installed products for auditing or support purposes.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		var report strings.Builder
 
-Use subcommands like 'win' to perform specific tasks.`,
+		// Handle one-off flags first
+		if autocompleteInstallFlag {
+			script := installAutocomplete()
+			fmt.Println(script)
+			return
+		}
+		if flushDnsFlag {
+			out, _ := flushDns()
+			fmt.Println(out)
+			return
+		}
+		if wingetUpdateFlag {
+			out, _ := wingetUpdate()
+			fmt.Println(out)
+			return
+		}
+		if scanHealthFlag {
+			out, _ := scanHealth()
+			fmt.Println(out)
+			return
+		}
+		if restoreHealthFlag {
+			out, _ := restoreHealth()
+			fmt.Println(out)
+			return
+		}
+
+		// If no flags set → run full collection
+		if !anyFlagsSet() {
+			getAllWindowsInfo()
+			return
+		}
+
+		// Run the selected flags
+		for _, a := range winActions {
+			if *a.flag {
+				fmt.Printf("\n=== %s ===\n", strings.Title(a.name))
+				out, err := a.run()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error running %s: %v\n", a.name, err)
+				}
+				fmt.Println(out)
+				report.WriteString(fmt.Sprintf("=== %s ===\n%s\n\n", strings.Title(a.name), out))
+			}
+		}
+
+		// TraceRoute example
+		if traceRouteRequest {
+			if len(args) < 1 {
+				fmt.Println("Please specify a host or IP to trace, e.g.: probedesk --trace 8.8.8.8")
+			} else {
+				host := args[0]
+				fmt.Printf("\n=== TraceRoute (%s) ===\n", host)
+				out, _ := traceRoute(host)
+				fmt.Println(out)
+				report.WriteString(fmt.Sprintf("=== TraceRoute (%s) ===\n%s\n\n", host, out))
+			}
+		}
+
+		// Export report
+		finalReport := report.String()
+		if finalReport != "" {
+			copyToClipboard(finalReport)
+			if reportFormat != "" {
+				if err := exportReport(finalReport, reportFormat, ""); err != nil {
+					fmt.Println("Error exporting report:", err)
+				} else {
+					fmt.Printf("✅ Report exported successfully as %s\n", reportFormat)
+				}
+			}
+		}
+	},
+}
+
+func anyFlagsSet() bool {
+	for _, a := range winActions {
+		if *a.flag {
+			return true
+		}
+	}
+	return traceRouteRequest
 }
 
 func Execute() {
@@ -35,7 +117,7 @@ func configureHelpAndUsage() {
 		fmt.Println("----------------------")
 		fmt.Println("ProbeDesk collects system & network information to help with support or auditing.")
 		fmt.Println("Usage examples:")
-		fmt.Println("  probedesk win     # --system --ipconfig   # run specific probes")
+		fmt.Println("  probedesk         # --system --ipconfig   # run specific probes")
 		fmt.Println()
 		fmt.Println("Available commands:")
 		printCommandsSummary(cmd)

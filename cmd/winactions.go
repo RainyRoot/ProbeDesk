@@ -16,6 +16,30 @@ type WinAction struct {
 	run  func() (string, error)
 }
 
+func init() {
+	// System & Network flags
+	rootCmd.Flags().BoolVar(&systemFlag, "system", false, "Collect system info")
+	rootCmd.Flags().BoolVar(&ipconfigFlag, "ipconfig", false, "Collect IP configuration info")
+	rootCmd.Flags().BoolVar(&netuseFlag, "netuse", false, "Show mapped network drives")
+	rootCmd.Flags().BoolVar(&productsFlag, "products", false, "Show installed products")
+	rootCmd.Flags().BoolVar(&getVpnConnectionsFlag, "vpn", false, "Show VPN connections")
+	rootCmd.Flags().BoolVar(&getServicesFlag, "services", false, "Show running services")
+	rootCmd.Flags().BoolVar(&getUserInfoFlag, "users", false, "Show local users")
+	rootCmd.Flags().BoolVar(&getUsbInfoFlag, "usb", false, "Show connected USB devices")
+	rootCmd.Flags().BoolVar(&checkHealthFlag, "check-health", false, "Check Windows health status")
+
+	// One-off / special flags
+	rootCmd.Flags().BoolVar(&traceRouteRequest, "trace", false, "Trace a host (add host as argument)")
+	rootCmd.Flags().BoolVar(&autocompleteInstallFlag, "autocomplete-install", false, "Install PowerShell autocomplete")
+	rootCmd.Flags().StringVar(&remoteTarget, "remote", "", "Run commands remotely on target host (requires PS Remoting)")
+	rootCmd.Flags().StringVar(&reportFormat, "report", "", "Export collected data to report (html or md)")
+	rootCmd.Flags().BoolVar(&confirmationFlag, "yes", false, "Confirmation flag")
+	rootCmd.Flags().BoolVar(&flushDnsFlag, "flush", false, "Flush DNS cache (requires --yes)")
+	rootCmd.Flags().BoolVar(&wingetUpdateFlag, "winget-update", false, "Update installed packages using winget (requires --yes)")
+	rootCmd.Flags().BoolVar(&scanHealthFlag, "scan-health", false, "Scan system health (requires --yes)")
+	rootCmd.Flags().BoolVar(&restoreHealthFlag, "restore-health", false, "Restore system health (requires --yes)")
+}
+
 func getSystemInfo() (string, error) {
 	return runPowershellReturnOutput("systeminfo | Select-String 'OS Name','OS Version'")
 }

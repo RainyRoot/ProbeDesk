@@ -27,5 +27,4 @@ var (
 	scanHealthFlag    bool
 	checkHealthFlag   bool
 	restoreHealthFlag bool
-	pingFlag          bool
 )
