@@ -1,0 +1,34 @@
+version: 2
+
+project_name: probedesk
+
+env:
+  - CGO_ENABLED=1
+
+builds:
+  - id: probedesk
+    main: ./main.go
+    goos:
+      - windows
+    goarch:
+      - amd64
+    binary: probedesk
+    flags:
+      - -trimpath=false
+
+archives:
+  - id: windows
+    builds: [probedesk]
+    format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - install.ps1
+      - README.md
+      - LICENSE
+
+release:
+  draft: false
+  prerelease: false
+  github:
+    owner: RainyRoot
+    name: ProbeDesk

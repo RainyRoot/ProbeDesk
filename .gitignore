@@ -1,0 +1,50 @@
+# ------------------------------
+# Go build artifacts
+# ------------------------------
+
+# Executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output dirs
+/dist/
+/build/
+
+# Test binaries
+*.test
+
+# Vendor dir (optional, depending on Go modules usage)
+vendor/
+
+# ------------------------------
+# IDE / Editor files
+# ------------------------------
+.vscode/
+.idea/
+*.iml
+
+# ------------------------------
+# OS generated files
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# Logs / temporary files
+# ------------------------------
+*.log
+*.tmp
+
+# ------------------------------
+# Go Modules
+# ------------------------------
+/go.sum
+/go.mod
+
+# ------------------------------
+# Coverage files
+# ------------------------------
+*.out
