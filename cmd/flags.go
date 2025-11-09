@@ -25,6 +25,7 @@ var (
 	confirmationFlag bool
 	flushDnsFlag     bool
 	wingetUpdateFlag bool
+	resetWindowsUpdateFlag bool
 
 	// DISM / Windows Health
 	scanHealthFlag    bool

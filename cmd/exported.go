@@ -21,3 +21,4 @@ func WingetUpdate() (string, error)  { return wingetUpdate() }
 func ScanHealth() (string, error)    { return scanHealth() }
 func RestoreHealth() (string, error) { return restoreHealth() }
 func SearchUninstallStringAndMSI(query string) (string, error) { return searchUninstallStringAndMSI(query) }
+func ResetWindowsUpdate() (string, error) { return resetWindowsUpdate() }

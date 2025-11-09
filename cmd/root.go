@@ -48,6 +48,12 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
+		if resetWindowsUpdateFlag {
+			out, _ := resetWindowsUpdate()
+			fmt.Println(out)
+			return
+		}
+
 		if searchUninstallStringFlag {
 			if len(args) < 1 {
 				fmt.Println("Please specify a search query for uninstall strings.")

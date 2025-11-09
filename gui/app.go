@@ -30,21 +30,6 @@ func Run() {
 
 	status := widget.NewLabel("Ready")
 
-	// // Check adminrights
-	// if !cmd.IsAdmin() {
-	// 	dialog.NewConfirm(
-	// 		"Admin rights are recommend",
-	// 		"Some actions (e.g. Flush DNS, DISM, Windows Update) require admin privileges.\n\nDo you like to restart ProbeDesk as admin?",
-	// 		func(ok bool) {
-	// 			if ok {
-	// 				cmd.RelaunchAsAdmin()
-	// 				a.Quit()
-	// 			}
-	// 		},
-	// 		w,
-	// 	).Show()
-	// }
-
 	// Checkboxes
 	systemCheck := widget.NewCheck("System Info", nil)
 	ipCheck := widget.NewCheck("IP Config", nil)
@@ -60,6 +45,8 @@ func Run() {
 	flushDns := widget.NewCheck("Flush DNS", nil)
 	winGetUpdate := widget.NewCheck("Check for Windows updates", nil)
 	restoreHealth := widget.NewCheck("Restore broken Windows image", nil)
+	searchUninstallStringAndMSI := widget.NewCheck("Search Uninstall String & MSI", nil)
+	resetWindowsUpdate := widget.NewCheck("Reset Windows Update", nil)
 
 	// Toggle all
 	actionChecks := []*widget.Check{
@@ -75,6 +62,9 @@ func Run() {
 	remoteEntry := widget.NewEntry()
 	remoteEntry.SetPlaceHolder("Optional: Remote host")
 
+	searchUninstallStringAndMSIEntry := widget.NewEntry()
+	searchUninstallStringAndMSIEntry.SetPlaceHolder("Search query: e.g., 'chrome'")
+
 	formatSelect := widget.NewSelect([]string{"html", "md"}, func(string) {})
 	formatSelect.SetSelected("html")
 
@@ -84,8 +74,9 @@ func Run() {
 	runButton := components.NewRunButton(output, status,
 		systemCheck, ipCheck, usbCheck, servicesCheck, usersCheck, traceRouteRequest,
 		vpnCheck, productsCheck, netuseCheck, checkHealthCheck,
-		flushDns, winGetUpdate, scanHealth, restoreHealth,
-		remoteEntry, tracerouteEntry, formatSelect, &mu)
+		flushDns, winGetUpdate, scanHealth, restoreHealth, searchUninstallStringAndMSI, resetWindowsUpdate,
+		remoteEntry, tracerouteEntry, searchUninstallStringAndMSIEntry,
+		formatSelect, &mu)
 
 	copyButton := components.NewCopyButton(output, status)
 	exportButton := components.NewExportButton(output, status, w, formatSelect)
@@ -123,7 +114,8 @@ func Run() {
 		widget.NewSeparator(),
 
 		widget.NewLabelWithStyle("System Maintenance & Health Checks", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		checkHealthCheck, flushDns, winGetUpdate, scanHealth, restoreHealth,
+		checkHealthCheck, scanHealth, restoreHealth, winGetUpdate, resetWindowsUpdate, flushDns,
+		searchUninstallStringAndMSI, searchUninstallStringAndMSIEntry,
 		healthInfo,
 		flushDnsInfo,
 

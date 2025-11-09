@@ -61,7 +61,7 @@ func installAutocomplete() error {
 // PowerShell Autocomplete Script
 func autocompleteScript() string {
 	return `
-$flags = @("system","ipconfig","netuse","products","vpn","services","users","usb","trace","remote","report","flushdns","winget-update","scan-health","check-health","restore-health","autocomplete-install")
+$flags = @("system","ipconfig","netuse","products","vpn","services","users","usb","trace","remote","report","flushdns","winget-update","scan-health","check-health","restore-health","autocomplete-install","ustring","reset-windows-update","yes")
 
 Register-ArgumentCompleter -CommandName "probedesk" -ScriptBlock {
     param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)

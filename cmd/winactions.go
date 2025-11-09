@@ -41,6 +41,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&scanHealthFlag, "scan-health", false, "Scan system health (requires --yes)")
 	rootCmd.Flags().BoolVar(&restoreHealthFlag, "restore-health", false, "Restore system health (requires --yes)")
 	rootCmd.Flags().BoolVar(&searchUninstallStringFlag, "ustring", false, "Search for uninstall strings of installed products")
+	rootCmd.Flags().BoolVar(&resetWindowsUpdateFlag, "reset-windows-update", false, "Reset Windows Update components (requires --yes)")
 }
 
 func getSystemInfo() (string, error) {
@@ -108,7 +109,23 @@ func wingetUpdate() (string, error) {
 	if !confirmationFlag && !guiMode {
 		return "Running winget upgrade requires --yes flag to confirm.", nil
 	}
-	return runPowershellReturnOutput("winget upgrade --accept-source-agreements --accept-package-agreements")
+
+	// Run winget with silent/progress-suppressing flags
+	out, err := runPowershellReturnOutput(
+		"winget upgrade --accept-source-agreements --accept-package-agreements --silent",
+	)
+	if err != nil {
+		return out, err
+	}
+
+	// Clean any remaining progress bar characters or lines
+	re := regexp.MustCompile(`(?m)^[\s█▒]+$`) // lines with only progress characters
+	cleanOutput := re.ReplaceAllString(out, "")
+
+	reInline := regexp.MustCompile(`[█▒]+`) // remove inline block characters
+	cleanOutput = reInline.ReplaceAllString(cleanOutput, "")
+
+	return cleanOutput, nil
 }
 
 func scanHealth() (string, error) {
@@ -160,51 +177,76 @@ func getUsbInfo() (string, error) {
 
 func searchUninstallStringAndMSI(query string) (string, error) {
 	// Simple sanity check
-	if !guiMode {
-		if strings.TrimSpace(query) == "" {
-			return "Invalid query: cannot be empty.", nil
-		}
+	if strings.TrimSpace(query) == "" {
+		return "Query cannot be empty or invalid.", nil
+	}
 
+	if isValidHost(query) {
 		psScript := fmt.Sprintf(`
-	$paths = @(
-		"HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
-		"HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
-		"HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
-	)
+$paths = @(
+	"HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+	"HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+	"HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+)
 
-	$result = @()
-	foreach ($path in $paths) {
-		try {
-			$items = Get-ItemProperty $path -ErrorAction SilentlyContinue
-			foreach ($item in $items) {
-				if ($item.DisplayName -and ($item.DisplayName -match "(?i)%s")) {
-					# Add matching entries
-					$result += [PSCustomObject]@{
-						DisplayName     = $item.DisplayName
-						UninstallString = $item.UninstallString
-						ProductCode     = $item.PSChildName  # Often contains the MSI GUID if applicable
-					}
+$result = @()
+foreach ($path in $paths) {
+	try {
+		$items = Get-ItemProperty $path -ErrorAction SilentlyContinuegit ad
+		foreach ($item in $items) {
+			if ($item.DisplayName -and ($item.DisplayName -match "(?i)%s")) {
+				$result += [PSCustomObject]@{
+					DisplayName     = $item.DisplayName
+					UninstallString = $item.UninstallString
+					ProductCode     = $item.PSChildName
 				}
 			}
-		} catch {}
-	}
-
-	if ($result.Count -eq 0) {
-		Write-Output "No matching uninstall entry found for '%s'."
-	} else {
-		# Try to detect whether ProductCode is a valid GUID
-		foreach ($r in $result) {
-			if ($r.ProductCode -notmatch '^{[0-9A-Fa-f\-]+}$') {
-				$r.ProductCode = "(N/A or non-MSI installer)"
-			}
 		}
+	} catch {}
+}
 
-		$result | Select-Object DisplayName, UninstallString, ProductCode | Format-Table -AutoSize
+if ($result.Count -eq 0) {
+	Write-Output "No matching uninstall entry found for '%s'."
+} else {
+	foreach ($r in $result) {
+		if ($r.ProductCode -notmatch '^{[0-9A-Fa-f\-]+}$') {
+			$r.ProductCode = "(N/A or non-MSI installer)"
+		}
 	}
-	`, query, query)
+	# Output as list to avoid truncation
+	$result | Select-Object DisplayName, UninstallString, ProductCode | Format-List | Out-String
+}
+`, query, query)
 
 		return runPowershellReturnOutput(psScript)
 	}
 
 	return "Query cannot be empty or invalid.", nil
+}
+
+func resetWindowsUpdate() (string, error) {
+
+	if !confirmationFlag && !guiMode {
+		return "Running winget upgrade requires --yes flag to confirm.", nil
+	}
+	if !IsAdmin() {
+		return "Resetting Windows Update requires administrative privileges. Please run as administrator.", nil
+	}
+	psCmd := `
+    Stop-Service wuauserv -Force
+    Stop-Service bits -Force
+    Stop-Service cryptsvc -Force
+
+    Rename-Item "C:\Windows\SoftwareDistribution" "SoftwareDistribution.old" -Force
+    Rename-Item "C:\Windows\System32\catroot2" "catroot2.old" -Force
+
+    Start-Service wuauserv
+    Start-Service bits
+    Start-Service cryptsvc
+
+    wuauclt /detectnow
+    "Windows Update components reset successfully. Please check for updates again."
+    `
+
+	return runPowershellReturnOutput(psCmd)
 }

@@ -66,14 +66,14 @@ func NewRunButton(
 	output *widget.Entry, status *widget.Label,
 	systemCheck, ipCheck, usbCheck, servicesCheck, usersCheck, traceRouteRequest,
 	vpnCheck, productsCheck, netuseCheck, checkHealthCheck,
-	flushDns, wingetUpdate, scanHealth, restoreHealth *widget.Check,
-	remoteEntry *widget.Entry, traceRoute *widget.Entry,
+	flushDns, wingetUpdate, scanHealth, restoreHealth, searchUninstallStringAndMSI, resetWindowsUpdate *widget.Check,
+	remoteEntry *widget.Entry, traceRoute *widget.Entry, searchUninstallStringAndMSIEntry *widget.Entry,
 	formatSelect *widget.Select, mu *sync.Mutex,
 ) *widget.Button {
 
 	return widget.NewButton("Run Selected", func() {
 		// Check if actions requires admin privileges
-		adminChecks := []*widget.Check{checkHealthCheck, flushDns, wingetUpdate, scanHealth, restoreHealth}
+		adminChecks := []*widget.Check{checkHealthCheck, flushDns, wingetUpdate, scanHealth, restoreHealth, searchUninstallStringAndMSI, resetWindowsUpdate}
 		adminRequired := false
 		for _, c := range adminChecks {
 			if c.Checked {
@@ -166,6 +166,15 @@ func NewRunButton(
 			}
 			if restoreHealth.Checked {
 				run("Restore Health", cmd.RestoreHealth)
+			}
+			if searchUninstallStringAndMSI.Checked {
+				query := searchUninstallStringAndMSIEntry.Text
+				run("Search Uninstall String & MSI", func() (string, error) {
+					return cmd.SearchUninstallStringAndMSI(query)
+				})
+			}
+			if resetWindowsUpdate.Checked {
+				run("Reset Windows Update", cmd.ResetWindowsUpdate)
 			}
 
 			result := report.String()

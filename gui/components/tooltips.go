@@ -21,4 +21,6 @@ var FlagTooltips = map[string]string{
 	"winget-update":        cmd.GetFlagDescription("winget-update"),
 	"scan-health":          cmd.GetFlagDescription("scan-health"),
 	"restore-health":       cmd.GetFlagDescription("restore-health"),
+	"ustring":              cmd.GetFlagDescription("ustring"),
+	"reset-windows-update": cmd.GetFlagDescription("reset-windows-update"),
 }
