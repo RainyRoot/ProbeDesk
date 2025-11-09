@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"syscall"
 )
 
 // Struct: Flag + Name + Action
@@ -17,6 +18,7 @@ type WinAction struct {
 }
 
 func init() {
+	//var traceTarget string
 	// System & Network flags
 	rootCmd.Flags().BoolVar(&systemFlag, "system", false, "Collect system info")
 	rootCmd.Flags().BoolVar(&ipconfigFlag, "ipconfig", false, "Collect IP configuration info")
@@ -29,7 +31,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&checkHealthFlag, "check-health", false, "Check Windows health status")
 
 	// One-off / special flags
-	rootCmd.Flags().BoolVar(&traceRouteRequest, "trace", false, "Trace a host (add host as argument)")
+	rootCmd.Flags().BoolVar(&traceRouteRequest, "trace", false, "Trace a host (provide host as argument)")
 	rootCmd.Flags().BoolVar(&autocompleteInstallFlag, "autocomplete-install", false, "Install PowerShell autocomplete")
 	rootCmd.Flags().StringVar(&remoteTarget, "remote", "", "Run commands remotely on target host (requires PS Remoting)")
 	rootCmd.Flags().StringVar(&reportFormat, "report", "", "Export collected data to report (html or md)")
@@ -38,6 +40,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&wingetUpdateFlag, "winget-update", false, "Update installed packages using winget (requires --yes)")
 	rootCmd.Flags().BoolVar(&scanHealthFlag, "scan-health", false, "Scan system health (requires --yes)")
 	rootCmd.Flags().BoolVar(&restoreHealthFlag, "restore-health", false, "Restore system health (requires --yes)")
+	rootCmd.Flags().BoolVar(&searchUninstallStringFlag, "ustring", false, "Search for uninstall strings of installed products")
 }
 
 func getSystemInfo() (string, error) {
@@ -77,6 +80,8 @@ func traceRoute(target string) (string, error) {
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive",
 		"-Command", "tracert", "-d", "-h", "10", target)
 
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+
 	out, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(out))
 
@@ -93,30 +98,28 @@ func isValidHost(input string) bool {
 }
 
 func flushDns() (string, error) {
-	if !confirmationFlag {
+	if !confirmationFlag && !guiMode {
 		return "Flushing DNS requires --yes flag to confirm.", nil
 	}
-	cmd := "ipconfig /flushdns"
-	return runPowershellReturnOutput(cmd)
+	return runPowershellReturnOutput("ipconfig /flushdns")
 }
 
 func wingetUpdate() (string, error) {
-	if !confirmationFlag {
+	if !confirmationFlag && !guiMode {
 		return "Running winget upgrade requires --yes flag to confirm.", nil
 	}
-	cmd := "winget upgrade --accept-source-agreements --accept-package-agreements"
-	return runPowershellReturnOutput(cmd)
+	return runPowershellReturnOutput("winget upgrade --accept-source-agreements --accept-package-agreements")
 }
 
 func scanHealth() (string, error) {
-	if !confirmationFlag {
+	if !confirmationFlag && !guiMode {
 		return "Scanning health requires --yes flag to confirm.", nil
 	}
 	return runPowershellReturnOutput("Dism /Online /Cleanup-Image /ScanHealth")
 }
 
 func restoreHealth() (string, error) {
-	if !confirmationFlag {
+	if !confirmationFlag && !guiMode {
 		return "Restoring health requires --yes flag to confirm.", nil
 	}
 	return runPowershellReturnOutput("Dism /Online /Cleanup-Image /RestoreHealth")
@@ -153,4 +156,55 @@ func getUsbInfo() (string, error) {
 	}
 	`
 	return runPowershellReturnOutput(psCmd)
+}
+
+func searchUninstallStringAndMSI(query string) (string, error) {
+	// Simple sanity check
+	if !guiMode {
+		if strings.TrimSpace(query) == "" {
+			return "Invalid query: cannot be empty.", nil
+		}
+
+		psScript := fmt.Sprintf(`
+	$paths = @(
+		"HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+		"HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+		"HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+	)
+
+	$result = @()
+	foreach ($path in $paths) {
+		try {
+			$items = Get-ItemProperty $path -ErrorAction SilentlyContinue
+			foreach ($item in $items) {
+				if ($item.DisplayName -and ($item.DisplayName -match "(?i)%s")) {
+					# Add matching entries
+					$result += [PSCustomObject]@{
+						DisplayName     = $item.DisplayName
+						UninstallString = $item.UninstallString
+						ProductCode     = $item.PSChildName  # Often contains the MSI GUID if applicable
+					}
+				}
+			}
+		} catch {}
+	}
+
+	if ($result.Count -eq 0) {
+		Write-Output "No matching uninstall entry found for '%s'."
+	} else {
+		# Try to detect whether ProductCode is a valid GUID
+		foreach ($r in $result) {
+			if ($r.ProductCode -notmatch '^{[0-9A-Fa-f\-]+}$') {
+				$r.ProductCode = "(N/A or non-MSI installer)"
+			}
+		}
+
+		$result | Select-Object DisplayName, UninstallString, ProductCode | Format-Table -AutoSize
+	}
+	`, query, query)
+
+		return runPowershellReturnOutput(psScript)
+	}
+
+	return "Query cannot be empty or invalid.", nil
 }

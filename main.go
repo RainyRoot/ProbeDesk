@@ -20,13 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// Version 1.0.0
 package main
 
 import (
+	"os"
+
 	"github.com/RainyRoot/ProbeDesk/cmd"
+	"github.com/RainyRoot/ProbeDesk/gui"
 )
 
 func main() {
-	cmd.Execute()
+	if len(os.Args) > 1 {
+		cmd.Execute()
+	} else {
+		gui.Run()
+	}
 }

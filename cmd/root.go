@@ -17,6 +17,7 @@ var rootCmd = &cobra.Command{
 	Short: "Collect Windows system and network information",
 	Long: `ProbeDesk collects Windows system info, network configuration, 
 	and installed products for auditing or support purposes.`,
+	Args: cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		var report strings.Builder
 
@@ -47,6 +48,32 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
+		if searchUninstallStringFlag {
+			if len(args) < 1 {
+				fmt.Println("Please specify a search query for uninstall strings.")
+			} else {
+				query := args[0]
+				fmt.Printf("\n=== Search Uninstall String (%s) ===\n", query)
+				out, _ := searchUninstallStringAndMSI(query)
+				fmt.Println(out)
+			}
+			return
+		}
+
+		// TraceRoute example
+		if traceRouteRequest {
+			if len(args) < 1 {
+				fmt.Println("Please specify a host or IP to trace, e.g.: probedesk --trace 8.8.8.8")
+			} else {
+				host := args[0]
+				fmt.Printf("\n=== TraceRoute (%s) ===\n", host)
+				out, _ := traceRoute(host)
+				fmt.Println(out)
+				report.WriteString(fmt.Sprintf("=== TraceRoute (%s) ===\n%s\n\n", host, out))
+			}
+			return
+		}
+
 		// If no flags set → run full collection
 		if !anyFlagsSet() {
 			getAllWindowsInfo()
@@ -66,29 +93,16 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		// TraceRoute example
-		if traceRouteRequest {
-			if len(args) < 1 {
-				fmt.Println("Please specify a host or IP to trace, e.g.: probedesk --trace 8.8.8.8")
-			} else {
-				host := args[0]
-				fmt.Printf("\n=== TraceRoute (%s) ===\n", host)
-				out, _ := traceRoute(host)
-				fmt.Println(out)
-				report.WriteString(fmt.Sprintf("=== TraceRoute (%s) ===\n%s\n\n", host, out))
-			}
-		}
-
 		// Export report
 		finalReport := report.String()
 		if finalReport != "" {
 			copyToClipboard(finalReport)
-			if reportFormat != "" {
-				if err := exportReport(finalReport, reportFormat, ""); err != nil {
-					fmt.Println("Error exporting report:", err)
-				} else {
-					fmt.Printf("✅ Report exported successfully as %s\n", reportFormat)
-				}
+		}
+		if reportFormat != "" {
+			if err := exportReport(finalReport, reportFormat, ""); err != nil {
+				fmt.Println("Error exporting report:", err)
+			} else {
+				fmt.Printf("✅ Report exported successfully as %s\n", reportFormat)
 			}
 		}
 	},
@@ -100,7 +114,7 @@ func anyFlagsSet() bool {
 			return true
 		}
 	}
-	return traceRouteRequest
+	return false
 }
 
 func Execute() {

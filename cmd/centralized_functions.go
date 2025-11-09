@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -24,6 +25,7 @@ func runPowershellReturnOutput(command string) (string, error) {
 	}
 
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 
 	// CombinedOutput []byte UTF-8
 	out, err := cmd.CombinedOutput()
@@ -43,25 +45,47 @@ func copyToClipboard(content string) {
 		fmt.Println("Nothing to copy.")
 		return
 	}
-	if err := clipboard.WriteAll(content); err != nil {
-		fmt.Println("Error copying to clipboard:", err)
-	} else {
-		fmt.Println("✅ Output copied to clipboard!")
+
+	// CLI-only auto-copy
+	if !guiMode {
+		if err := clipboard.WriteAll(content); err != nil {
+			fmt.Println("Error copying to clipboard:", err)
+		} else {
+			fmt.Println("✅ Output copied to clipboard!")
+		}
 	}
+}
+
+func copyToClipboardForce(content string) error {
+	if content == "" {
+		return fmt.Errorf("nothing to copy")
+	}
+	return clipboard.WriteAll(content)
 }
 
 func exportReport(content, format, path string) error {
 	if path == "" {
-		// Desktop of the current user
 		usr, err := user.Current()
 		if err != nil {
-			return fmt.Errorf("Couldnt determine current user: %v", err)
+			return fmt.Errorf("Could not determine current user: %v", err)
 		}
-		path = filepath.Join(usr.HomeDir, "Desktop")
+		path = filepath.Join(usr.HomeDir, "Desktop",
+			fmt.Sprintf("report_%s.%s", time.Now().Format("2006-01-02_15-04-05"), format))
+		return writeReportFile(content, format, path)
 	}
 
-	// Create filename
-	filename := filepath.Join(path, fmt.Sprintf("report_%s.%s", time.Now().Format("2006-01-02_15-04-05"), format))
+	// If path already ends with .html or .md -> write directly
+	if strings.HasSuffix(strings.ToLower(path), "."+format) {
+		return writeReportFile(content, format, path)
+	}
+
+	// Otherwise, assume it's a directory
+	filename := filepath.Join(path,
+		fmt.Sprintf("report_%s.%s", time.Now().Format("2006-01-02_15-04-05"), format))
+	return writeReportFile(content, format, filename)
+}
+
+func writeReportFile(content, format, filename string) error {
 
 	switch format {
 	case "md":
@@ -72,4 +96,35 @@ func exportReport(content, format, path string) error {
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+func GetFlagDescription(name string) string {
+	f := rootCmd.Flags().Lookup(name)
+	if f != nil {
+		return f.Usage
+	}
+	return ""
+}
+
+// check for admin privileges
+func IsAdmin() bool {
+	cmd := exec.Command("net", "session")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
+}
+
+// relaunch app as admin after prompt
+func RelaunchAsAdmin() error {
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("powershell", "-Command",
+		"Start-Process", "'"+exe+"'", "-Verb", "runAs")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	return cmd.Start()
 }

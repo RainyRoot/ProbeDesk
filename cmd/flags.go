@@ -2,6 +2,9 @@ package cmd
 
 // Flags
 var (
+	// Global
+	guiMode bool
+
 	// System & Network
 	systemFlag            bool
 	ipconfigFlag          bool
@@ -27,4 +30,10 @@ var (
 	scanHealthFlag    bool
 	checkHealthFlag   bool
 	restoreHealthFlag bool
+	searchUninstallStringFlag bool
 )
+
+//>>>>>>>>>>>>>>>>TEST ME<<<<<<<<<<<<<<<<<<  verschieben?
+func SetGuiMode(mode bool) {
+	guiMode = mode
+}
