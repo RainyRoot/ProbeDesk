@@ -1,4 +1,0 @@
-//buttons
-//uninstall string suchen für z.b. "input chrome"  //export prototype done -> implement in app missing
-//MSI product code für z.b. chrome ausgeben // combined with abov
-// windows button zurücksetzten (win updates/remedation) //nur update-button resetten  //resetting win services to hard no?

@@ -37,17 +37,6 @@ func isAdmin() bool {
 	return err == nil && member
 }
 
-// // Restart and prompt UAC
-// func relaunchAsAdmin() {
-// 	exe, _ := os.Executable()
-// 	cmd := exec.Command("powershell", "-Command", "Start-Process", exe, "-Verb", "runAs", "-WindowStyle", "Hidden")
-// 	cmd.Stdin = os.Stdin
-// 	cmd.Stdout = os.Stdout
-// 	cmd.Stderr = os.Stderr
-// 	cmd.Run()
-// 	os.Exit(0)
-// }
-
 func relaunchAsAdmin() {
 	exe, _ := os.Executable()
 	verbPtr, _ := windows.UTF16PtrFromString("runas")

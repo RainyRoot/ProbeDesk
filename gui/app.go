@@ -6,8 +6,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-
-	//"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/RainyRoot/ProbeDesk/cmd"
@@ -46,7 +44,7 @@ func Run() {
 	winGetUpdate := widget.NewCheck("Check for Windows updates", nil)
 	restoreHealth := widget.NewCheck("Restore broken Windows image", nil)
 	searchUninstallStringAndMSI := widget.NewCheck("Search Uninstall String & MSI", nil)
-	resetWindowsUpdate := widget.NewCheck("Reset Windows Update", nil)
+	resetWindowsUpdate := widget.NewCheck("Reset Windows Update (Test für Martin)", nil)
 
 	// Toggle all
 	actionChecks := []*widget.Check{
@@ -63,7 +61,7 @@ func Run() {
 	remoteEntry.SetPlaceHolder("Optional: Remote host")
 
 	searchUninstallStringAndMSIEntry := widget.NewEntry()
-	searchUninstallStringAndMSIEntry.SetPlaceHolder("Search query: e.g., 'chrome'")
+	searchUninstallStringAndMSIEntry.SetPlaceHolder("Search query: e.g. 'chrome'")
 
 	formatSelect := widget.NewSelect([]string{"html", "md"}, func(string) {})
 	formatSelect.SetSelected("html")

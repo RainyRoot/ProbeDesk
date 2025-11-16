@@ -34,7 +34,6 @@ var (
 	searchUninstallStringFlag bool
 )
 
-//>>>>>>>>>>>>>>>>TEST ME<<<<<<<<<<<<<<<<<<  verschieben?
 func SetGuiMode(mode bool) {
 	guiMode = mode
 }

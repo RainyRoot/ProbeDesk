@@ -176,52 +176,55 @@ func getUsbInfo() (string, error) {
 }
 
 func searchUninstallStringAndMSI(query string) (string, error) {
-	// Simple sanity check
+	// Basic sanity check
 	if strings.TrimSpace(query) == "" {
 		return "Query cannot be empty or invalid.", nil
 	}
 
-	if isValidHost(query) {
-		psScript := fmt.Sprintf(`
+	psScript := fmt.Sprintf(`
 $paths = @(
-	"HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
-	"HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
-	"HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+    "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
 )
 
 $result = @()
+
 foreach ($path in $paths) {
-	try {
-		$items = Get-ItemProperty $path -ErrorAction SilentlyContinuegit ad
-		foreach ($item in $items) {
-			if ($item.DisplayName -and ($item.DisplayName -match "(?i)%s")) {
-				$result += [PSCustomObject]@{
-					DisplayName     = $item.DisplayName
-					UninstallString = $item.UninstallString
-					ProductCode     = $item.PSChildName
-				}
-			}
-		}
-	} catch {}
+    try {
+        $keys = Get-ChildItem $path -ErrorAction SilentlyContinue
+        foreach ($key in $keys) {
+            $item = Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue
+
+            if ($item.DisplayName -and ($item.DisplayName -match "(?i)%s")) {
+                $prod = $key.PSChildName
+                if ($prod -notmatch '^{[0-9A-Fa-f\-]+}$') {
+                    $prod = "(N/A or non-MSI installer)"
+                }
+
+                $result += [PSCustomObject]@{
+                    DisplayName     = $item.DisplayName
+                    UninstallString = $item.UninstallString
+                    ProductCode     = $prod
+                }
+            }
+        }
+    } catch {}
 }
 
 if ($result.Count -eq 0) {
-	Write-Output "No matching uninstall entry found for '%s'."
+    Write-Output "No matching uninstall entry found for '%s'."
 } else {
-	foreach ($r in $result) {
-		if ($r.ProductCode -notmatch '^{[0-9A-Fa-f\-]+}$') {
-			$r.ProductCode = "(N/A or non-MSI installer)"
-		}
-	}
-	# Output as list to avoid truncation
-	$result | Select-Object DisplayName, UninstallString, ProductCode | Format-List | Out-String
+    $result | ForEach-Object {
+"{0}
+{1}
+{2}
+---" -f $_.DisplayName, $_.UninstallString, $_.ProductCode
+    }
 }
 `, query, query)
 
-		return runPowershellReturnOutput(psScript)
-	}
-
-	return "Query cannot be empty or invalid.", nil
+	return runPowershellReturnOutput(psScript)
 }
 
 func resetWindowsUpdate() (string, error) {
