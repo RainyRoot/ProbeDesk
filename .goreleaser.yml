@@ -3,7 +3,7 @@ version: 2
 project_name: probedesk
 
 env:
-  - CGO_ENABLED=0
+  - CGO_ENABLED=1
 
 builds:
   - id: probedesk
