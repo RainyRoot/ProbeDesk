@@ -4,7 +4,7 @@
 ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
 ![Language](https://img.shields.io/badge/language-Go-00ADD8.svg)
-[![Release](https://img.shields.io/github/v/release/RainyRoot/ProbeDesk?label=Latest%20Release)]
+[![Release](https://img.shields.io/github/v/release/RainyRoot/ProbeDesk?label=Latest%20Release)](https://github.com/RainyRoot/ProbeDesk/releases/latest)
 
 **ProbeDesk — Lightweight Windows System Administration & Information-Gathering Tool**
 
