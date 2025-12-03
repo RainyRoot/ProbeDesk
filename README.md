@@ -86,6 +86,15 @@ Formats are auto-detected based on file extension or via the `Report Format Drop
 
 ---
 
+## Related Projects
+
+| Project        | Description |
+|----------------|-------------|
+| ProbeDesk-CLI  | CLI-only version with autocomplete and safety checks |
+| ProbeDesk-GUI  | Windows GUI version (this repo) |
+
+---
+
 ## Troubleshooting
 
 * **Remote Target fails**  
@@ -129,3 +138,4 @@ Discord: rainy123
 **v1.0.0**  
 
 Initial release including core enumeration modules, admin utilities, and HTML/Markdown report generation.
+
