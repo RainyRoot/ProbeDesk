@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"syscall"
 )
 
 // Struct: Flag + Name + Action
@@ -78,10 +77,10 @@ func traceRoute(target string) (string, error) {
 		return "Invalid target: only letters, digits, dots, and hyphens are allowed.", nil
 	}
 
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive",
+	cmd := exec.Command(psCommand(), "-NoProfile", "-NonInteractive",
 		"-Command", "tracert", "-d", "-h", "10", target)
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.SysProcAttr = hiddenProcess()
 
 	out, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(out))

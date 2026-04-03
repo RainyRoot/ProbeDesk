@@ -11,7 +11,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -24,8 +23,8 @@ func runPowershellReturnOutput(command string) (string, error) {
 		psCmd = fmt.Sprintf(`Invoke-Command -ComputerName %s -ScriptBlock { [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8; %s }`, remoteTarget, command)
 	}
 
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd := exec.Command(psCommand(), "-NoProfile", "-NonInteractive", "-Command", psCmd)
+	cmd.SysProcAttr = hiddenProcess()
 
 	// CombinedOutput []byte UTF-8
 	out, err := cmd.CombinedOutput()
@@ -91,7 +90,7 @@ func writeReportFile(content, format, filename string) error {
 	case "md":
 		return os.WriteFile(filename, []byte("```markdown\n"+content+"\n```"), 0644)
 	case "html":
-		htmlOut := "<html><body><pre>" + html.EscapeString(content) + "</pre></body></html>"
+		htmlOut := "<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<title>ProbeDesk Report</title>\n<style>body{font-family:monospace;background:#1e1e1e;color:#d4d4d4;padding:20px;}pre{white-space:pre-wrap;word-wrap:break-word;}</style>\n</head>\n<body><pre>" + html.EscapeString(content) + "</pre></body></html>"
 		return os.WriteFile(filename, []byte(htmlOut), 0644)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
@@ -109,7 +108,7 @@ func GetFlagDescription(name string) string {
 // check for admin privileges
 func IsAdmin() bool {
 	cmd := exec.Command("net", "session")
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.SysProcAttr = hiddenProcess()
 	if err := cmd.Run(); err != nil {
 		return false
 	}
@@ -123,8 +122,8 @@ func RelaunchAsAdmin() error {
 		return err
 	}
 
-	cmd := exec.Command("powershell", "-Command",
+	cmd := exec.Command(psCommand(), "-Command",
 		"Start-Process", "'"+exe+"'", "-Verb", "runAs")
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.SysProcAttr = hiddenProcess()
 	return cmd.Start()
 }
