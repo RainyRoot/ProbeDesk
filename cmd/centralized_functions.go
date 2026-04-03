@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -23,8 +24,8 @@ func runPowershellReturnOutput(command string) (string, error) {
 		psCmd = fmt.Sprintf(`Invoke-Command -ComputerName %s -ScriptBlock { [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8; %s }`, remoteTarget, command)
 	}
 
-	cmd := exec.Command(psCommand(), "-NoProfile", "-NonInteractive", "-Command", psCmd)
-	cmd.SysProcAttr = hiddenProcess()
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 
 	// CombinedOutput []byte UTF-8
 	out, err := cmd.CombinedOutput()
@@ -108,7 +109,7 @@ func GetFlagDescription(name string) string {
 // check for admin privileges
 func IsAdmin() bool {
 	cmd := exec.Command("net", "session")
-	cmd.SysProcAttr = hiddenProcess()
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err := cmd.Run(); err != nil {
 		return false
 	}
@@ -122,8 +123,8 @@ func RelaunchAsAdmin() error {
 		return err
 	}
 
-	cmd := exec.Command(psCommand(), "-Command",
+	cmd := exec.Command("powershell", "-Command",
 		"Start-Process", "'"+exe+"'", "-Verb", "runAs")
-	cmd.SysProcAttr = hiddenProcess()
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	return cmd.Start()
 }

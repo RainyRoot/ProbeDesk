@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
 ![Language](https://img.shields.io/badge/language-Go-00ADD8.svg)
 [![Release](https://img.shields.io/github/v/release/RainyRoot/ProbeDesk?label=Latest%20Release)](https://github.com/RainyRoot/ProbeDesk/releases/latest)
 
@@ -62,49 +62,9 @@ Use **Report Format** to export results, or **Copy Output** to place them in you
 
 ## Installation
 
-### Windows
-
 1. Download `probedesk_windows_amd64.zip` from the [latest release](https://github.com/RainyRoot/ProbeDesk/releases/latest).
 2. Extract and run `probedesk.exe`.
 3. For remote execution, ensure PowerShell Remoting (WinRM) is enabled.
-
-### Linux
-
-1. Download `probedesk_linux_amd64.tar.gz` from the [latest release](https://github.com/RainyRoot/ProbeDesk/releases/latest).
-2. Extract and make executable:
-   ```bash
-   tar -xzf probedesk_linux_amd64.tar.gz
-   chmod +x probedesk_linux
-   ./probedesk_linux --help
-   ```
-3. PowerShell commands require [PowerShell Core (`pwsh`)](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux) to be installed.
-
-### Docker
-
-The Docker image provides a ready-to-run Linux environment with ProbeDesk pre-installed.
-
-**Pull the image:**
-```bash
-docker pull ghcr.io/rainyroot/probedesk:latest
-```
-
-**Run a specific probe (CLI mode):**
-```bash
-docker run --rm ghcr.io/rainyroot/probedesk:latest --system
-docker run --rm ghcr.io/rainyroot/probedesk:latest --ipconfig
-```
-
-**Export a report from inside the container:**
-```bash
-docker run --rm -v "$PWD/reports:/reports" ghcr.io/rainyroot/probedesk:latest \
-    --system --ipconfig --report html --report-path /reports
-```
-
-**Available tags:**
-| Tag | Description |
-|-----|-------------|
-| `latest` | Most recent stable release |
-| `v1.0` | Version 1.0 |
 
 ---
 
@@ -178,7 +138,5 @@ Discord: rainy123
 **v1.0**
 
 - Initial release including core enumeration modules, admin utilities, and HTML/Markdown report generation.
-- Linux support added (requires PowerShell Core `pwsh`).
 - Fixed German special character (Umlaute/Sonderzeichen) rendering in HTML reports.
-- Docker image published to `ghcr.io/rainyroot/probedesk`.
 
