@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxi-dev \
     libxxf86vm-dev \
     xorg-dev \
+    libgtk-3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -27,6 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcursor1 \
     libxinerama1 \
     libxi6 \
+    libgtk-3-0 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
