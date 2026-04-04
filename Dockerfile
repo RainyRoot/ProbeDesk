@@ -30,8 +30,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxi6 \
     libgtk-3-0 \
     ca-certificates \
+    xvfb \
+    x11-utils \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /build/probedesk /usr/local/bin/probedesk
+COPY docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-ENTRYPOINT ["probedesk"]
+ENTRYPOINT ["/entrypoint.sh"]
