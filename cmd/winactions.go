@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"syscall"
 )
 
 // Struct: Flag + Name + Action
@@ -81,7 +80,7 @@ func traceRoute(target string) (string, error) {
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive",
 		"-Command", "tracert", "-d", "-h", "10", target)
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.SysProcAttr = hiddenSysProcAttr()
 
 	out, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(out))
